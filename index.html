@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stopwatch App</title>
+<style>
+html,body{
+margin:0px;
+padding:0px;
+background:#212121;
+user-select:none;
+color:#fafafa;
+width:100%;
+height: 100%;
+}
+*{font-family: 'Arial';}
+.main-ctnr{
+display:flex;
+width: 100%;
+height: 100%;
+}
+.left-ctnr{
+flex-grow: 1;
+height: 100%;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+background: #212121;
+}
+.right-ctnr{
+height: 100%;
+overflow: hidden;
+position: relative;
+width:400px;
+min-width:400px;
+background: #333;
+}
+.timer-container{
+display: flex;
+align-items: center;
+justify-content: center;
+padding: 10px;
+box-sizing: border-box;
+}
+.stopwatch-display-ctnr, .timer-container,.stopwatch-ctrls{
+display: flex;
+justify-content: center;
+box-sizing: border-box;
+}
+.timer-container{
+min-width: 460px;
+flex-direction: column;
+gap: 4px;
+border-radius: 12px;
+border: 2px dashed #504da8;
+}
+.stopwatch-display-ctnr{
+padding: 10px;
+width: 100%;
+height: 120px;
+background: #212121;
+gap:12px
+}
+.stopwatch-ctrls{
+width: 100%;
+height: 64px;
+gap: 8px;
+align-self: center;
+}
+.stopwatch-time-item{
+padding: 0px 16px;
+box-sizing: border-box;
+border-radius: 8px;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+border: 1px dashed #424242;
+min-width: 90px;
+}
+.stopwatch-time-item-title{
+color: #424242;
+font-size: 16px;
+}
+.stopwatch-time-item-value{
+color: #e0e0e0;
+font-size: 48px;
+}
+.stopwatch-ctrl-btn{
+width:64px;
+height:64px;
+border-radius: 64em;
+border: 1px dashed #555;
+cursor: pointer;
+display: flex;
+align-items: center;
+justify-content: center;
+}
+.stopwatch-ctrl-btn:hover{
+transform: scale(1.1);
+border: 1px dashed #757575;
+}
+.stopwatch-ctrl-btn .play-btn{display: none;}
+.stopwatch-ctrl-btn.active .play-btn{display: flex;}
+.stopwatch-ctrl-btn.active .pause-btn{display: none;}
+.stopwatch-ctrl-btn:hover img{
+filter: brightness(0) saturate(100%) invert(47%) sepia(0%) saturate(1363%) hue-rotate(207deg) brightness(95%) contrast(77%);
+}
+.stopwatch-ctrl-btn img{
+width: 80%;
+height: 80%;
+filter: brightness(0) saturate(100%) invert(33%) sepia(0%) saturate(10%) hue-rotate(181deg) brightness(94%) contrast(90%);
+}
+.right-ctnr{
+padding: 8px 4px;
+box-sizing: border-box;
+overflow-x: hidden;
+overflow-y: scroll;
+gap: 4px;
+display: flex;
+flex-direction: column;
+}
+.right-ctnr::-webkit-scrollbar {width: 3px;}
+.right-ctnr::-webkit-scrollbar-thumb {
+background: #504da8;
+border-radius: 64em;
+cursor: pointer;
+}
+.lap-item{
+width: 100%;
+min-height: 40px;
+height: 40px;
+border-radius: 5px;
+display: flex;
+align-items: center;
+box-sizing: border-box;
+background: #222;
+}
+.lap-item div{
+width: 100%;
+display: flex;
+padding-left: 10px;
+}
+</style>
+</head>
+<body>
+<div class="main-ctnr">
+<div class="left-ctnr">
+<div class="timer-container">
+<div class="stopwatch-display-ctnr">
+<div class="stopwatch-time-item">
+<div class="stopwatch-time-item-title">hrs</div>
+<div class="stopwatch-time-item-value" id="val-hrs">00</div>
+</div>
+<div class="stopwatch-time-item">
+<div class="stopwatch-time-item-title">mins</div>
+<div class="stopwatch-time-item-value" id="val-mins">00</div>
+</div>
+<div class="stopwatch-time-item">
+<div class="stopwatch-time-item-title">secs</div>
+<div class="stopwatch-time-item-value" id="val-secs">00</div>
+</div>
+<div class="stopwatch-time-item">
+<div class="stopwatch-time-item-title">ms</div>
+<div class="stopwatch-time-item-value" id="val-ms">00</div>
+</div>
+</div>
+<div class="stopwatch-ctrls">
+<div class="stopwatch-ctrl-btn" onclick="reset()"><img src="imgs/restart.svg"/></div>
+<div class="stopwatch-ctrl-btn active play-pause-btn" onclick="playPause()">
+<img class="play-btn" src="imgs/play.svg"/>
+<img class="pause-btn" src="imgs/pause.svg"/>
+</div>
+<div class="stopwatch-ctrl-btn" onclick="addLap()"><img src="imgs/lap.svg"/></div>
+</div>
+</div>
+</div>
+<div class="right-ctnr"></div>
+</div>
+<script>
+let isPlaying=false;
+let timerInterval;
+let startTime;
+let elapsedTime = 0;
+let currentTime=0;
+let laps = [];
+const divHrs=document.getElementById("val-hrs");
+const divMins=document.getElementById("val-mins");
+const divSecs=document.getElementById("val-secs");
+const divMs=document.getElementById("val-ms");
+const playPauseBtn=document.querySelector(".play-pause-btn");
+const rightCtnr=document.querySelector(".right-ctnr");
+function getTimeObj(ms){
+return{
+"hrs" :Math.floor(ms / 3600000),
+"mins":Math.floor((ms % 3600000) / 60000),
+"secs" :Math.floor((ms % 60000) / 1000),
+"ms":ms % 1000
+};
+}
+function addLap(){
+if(!isPlaying)return;
+let diffTime=laps.length>0?elapsedTime-laps[laps.length-1]:elapsedTime;
+laps.push(elapsedTime);
+addLapItem(laps.length,diffTime,elapsedTime);
+}
+function updateTimer() {
+currentTime = new Date().getTime();
+elapsedTime = currentTime - startTime;
+let tobj= getTimeObj(elapsedTime);
+divHrs.textContent=String(tobj["hrs"]).padStart(2, "0");
+divMins.textContent=String(tobj["mins"]).padStart(2, "0");
+divSecs.textContent=String(tobj["secs"]).padStart(2, "0");
+divMs.textContent=String(tobj["ms"]%100).padStart(2, "0");
+}
+function reset(){
+clearInterval(timerInterval);
+elapsedTime = 0;
+laps = [];
+rightCtnr.innerHTML = "";
+divHrs.textContent="00";
+divMins.textContent="00";
+divSecs.textContent="00";
+divMs.textContent="00";
+isPlaying=false;
+playPauseBtn.classList.add("active");
+}
+function playPause(){
+isPlaying=!isPlaying;
+if(isPlaying){
+playPauseBtn.classList.remove("active");
+startTime = new Date().getTime() - elapsedTime;
+timerInterval = setInterval(updateTimer, 10);
+}else{
+playPauseBtn.classList.add("active");
+clearInterval(timerInterval);
+}
+}
+function addLapItem(n,diffTime,elapsedTime){
+let dt=getTimeObj(diffTime);
+let et=getTimeObj(elapsedTime);
+dt["hrs"]=String(dt["hrs"]).padStart(2, "0");
+dt["mins"]=String(dt["mins"]).padStart(2, "0");
+dt["secs"]=String(dt["secs"]).padStart(2, "0");
+dt["ms"]=String(dt["ms"]%100).padStart(2, "0");
+et["hrs"]=String(et["hrs"]).padStart(2, "0");
+et["mins"]=String(et["mins"]).padStart(2, "0");
+et["secs"]=String(et["secs"]).padStart(2, "0");
+et["ms"]=String(et["ms"]%100).padStart(2, "0");
+var hcode=`
+<div class="lap-item">
+<div class="lap-item-count">#${n}</div>
+<div class="lap-item-duration">${dt["hrs"]}:${dt["mins"]}:${dt["secs"]}:${dt["ms"]}</div>
+<div class="lap-item-start">${et["hrs"]}:${et["mins"]}:${et["secs"]}:${et["ms"]}</div>
+</div>`;
+var firstChild = rightCtnr.firstElementChild;
+if (firstChild) {
+firstChild.insertAdjacentHTML('beforebegin', hcode);
+} else {
+rightCtnr.insertAdjacentHTML('beforeend', hcode);
+}
+}
+</script>
+</body>
+</html>
